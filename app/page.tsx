@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from "@/utils/supabase/client";// importパス修正
 import { useRouter } from 'next/navigation' // 【追加1】これが必要です！
 
 export default function LoginPage() {
