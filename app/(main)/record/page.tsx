@@ -40,6 +40,23 @@ interface HealthLogRow {
   exercise_minutes?: number | null;
 }
 
+/** 設定のモードフラグ（DB user_settings の一部）。参照前に定義しておく */
+interface UserSettingsMode {
+  mode_ibd?: boolean;
+  mode_diet?: boolean;
+  mode_alcohol?: boolean;
+  mode_mental?: boolean;
+}
+
+const DRINK_PRESETS: Record<string, DrinkPreset> = {
+  beer350: { label: "ビール (350ml)", ml: 350, percent: 5 },
+  highball: { label: "ハイボール (350ml)", ml: 350, percent: 7 },
+  chuhai: { label: "チューハイ (350ml)", ml: 350, percent: 5 },
+  sake: { label: "日本酒 (1合)", ml: 180, percent: 15 },
+  wine: { label: "ワイン (グラス)", ml: 120, percent: 12 },
+  custom: { label: "手入力", ml: 0, percent: 0 },
+};
+
 /** DBの alcohol_type 文字列（例: "ビール (350ml)x2, ハイボール (350ml)x1"）を addedDrinks に復元する */
 function parseAlcoholTypeToAddedDrinks(
   alcoholType: string | null | undefined,
@@ -82,20 +99,11 @@ function parseAlcoholTypeToAddedDrinks(
   return result;
 }
 
-const DRINK_PRESETS: Record<string, DrinkPreset> = {
-  beer350: { label: "ビール (350ml)", ml: 350, percent: 5 },
-  highball: { label: "ハイボール (350ml)", ml: 350, percent: 7 },
-  chuhai: { label: "チューハイ (350ml)", ml: 350, percent: 5 },
-  sake: { label: "日本酒 (1合)", ml: 180, percent: 15 },
-  wine: { label: "ワイン (グラス)", ml: 120, percent: 12 },
-  custom: { label: "手入力", ml: 0, percent: 0 },
-};
-
 export default function RecordPage() {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [modes, setModes] = useState<Record<string, unknown>>({});
+  const [modes, setModes] = useState<UserSettingsMode>({});
   const [gender, setGender] = useState('unspecified');
   const [medicalHistory, setMedicalHistory] = useState('');
 
@@ -199,7 +207,12 @@ export default function RecordPage() {
           .eq('user_id', session.user.id)
           .maybeSingle();
         if (settings) {
-          setModes(settings as Record<string, unknown>);
+          setModes({
+            mode_ibd: Boolean(settings.mode_ibd),
+            mode_diet: Boolean(settings.mode_diet),
+            mode_alcohol: Boolean(settings.mode_alcohol),
+            mode_mental: Boolean(settings.mode_mental),
+          });
           setGender((settings.gender as string) || 'unspecified');
           setMedicalHistory((settings.medical_history as string) || '');
         }
@@ -263,7 +276,7 @@ export default function RecordPage() {
 
   const clearMealImage = () => setMealImageBase64(null);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -394,19 +407,46 @@ export default function RecordPage() {
           )}
         </div>
 
-        {/* 🍽️ 食事記録 */}
+
+       {/* 🍽️ 食事記録エリア */}
         <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 space-y-3">
           <h3 className="font-bold text-orange-800">🍽️ 食事メモ (AI分析用)</h3>
-          <textarea value={mealDescription} onChange={e=>setMealDescription(e.target.value)} className="w-full h-24 p-2 border rounded text-sm" placeholder="例: ラーメン大盛り、餃子。お腹いっぱい..." />
+          <textarea 
+            value={mealDescription} 
+            onChange={(e) => setMealDescription(e.target.value)} 
+            className="w-full h-24 p-2 border rounded text-sm" 
+            placeholder="例: ラーメン大盛り、餃子。お腹いっぱい..." 
+          />
+          
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="file" accept="image/*" onChange={handleMealImageChange} className="hidden" />
-              <span className="bg-orange-500 text-white text-sm px-3 py-2 rounded-lg font-bold hover:bg-orange-600 transition">📷 食事写真を追加</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleMealImageChange} 
+                className="hidden" 
+              />
+              <span className="bg-orange-500 text-white text-sm px-3 py-2 rounded-lg font-bold hover:bg-orange-600 transition">
+                📷 食事写真を追加
+              </span>
             </label>
+
             {mealImageBase64 && (
               <div className="relative inline-block">
-                <img src={mealImageBase64} alt="食事プレビュー" className="max-h-32 rounded-lg border border-orange-200 object-cover" />
-                <button type="button" onClick={clearMealImage} className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-sm font-bold shadow hover:bg-red-600" aria-label="写真を削除">×</button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={mealImageBase64} 
+                  alt="食事プレビュー" 
+                  className="max-h-32 rounded-lg border border-orange-200 object-cover" 
+                />
+                <button 
+                  type="button" 
+                  onClick={clearMealImage} 
+                  className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-sm font-bold shadow hover:bg-red-600"
+                  aria-label="写真を削除"
+                >
+                  ×
+                </button>
               </div>
             )}
           </div>

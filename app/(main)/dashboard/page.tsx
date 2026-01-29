@@ -140,7 +140,7 @@ export default function DashboardPage() {
                   orientation="right"
                 />
                 <Tooltip
-                  formatter={(value: number) => (value != null ? value : '—')}
+                  formatter={(value: any) => (value != null ? value : '—')}
                   labelFormatter={(_, payload) => (payload[0]?.payload?.fullDate ?? '')}
                 />
                 <Legend />
